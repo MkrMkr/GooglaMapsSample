@@ -2,17 +2,23 @@ package com.example.mirek.googlemapssample;
 
 import android.os.Bundle;
 import android.os.Handler;
+import android.os.SystemClock;
 import android.support.v4.app.FragmentActivity;
+import android.view.animation.Interpolator;
+import android.view.animation.LinearInterpolator;
 
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
+import com.google.android.gms.maps.Projection;
 import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.LatLng;
+import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.android.gms.maps.model.PolylineOptions;
 
 import java.util.ArrayList;
+import java.util.List;
 
 import static com.example.mirek.googlemapssample.R.id.map;
 
@@ -69,7 +75,56 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 .add(fiji)
                 .add(hawaii)
                 .add(mountainView));
-        go();
+        //   go();
+
+        Marker marker = mMap.addMarker(new MarkerOptions()
+                .position(fiji)
+                .title("Hello world"));
+
+        ArrayList animationPlaces = new ArrayList();
+        animationPlaces.add(mountainView);
+        animationPlaces.add(hawaii);
+        animationPlaces.add(fiji);
+        animationPlaces.add(sydney);
+        animateMarker(mMap, marker, animationPlaces, false);
+
+    }
+
+    private static void animateMarker(final GoogleMap myMap, final Marker marker, final List<LatLng> directionPoint,
+                                      final boolean hideMarker) {
+        final Handler handler = new Handler();
+        final long start = SystemClock.uptimeMillis();
+        Projection proj = myMap.getProjection();
+        final long duration = 30000;
+
+        final Interpolator interpolator = new LinearInterpolator();
+
+        handler.post(new Runnable() {
+            int i = 0;
+
+            @Override
+            public void run() {
+                long elapsed = SystemClock.uptimeMillis() - start;
+                float t = interpolator.getInterpolation((float) elapsed
+                        / duration);
+                if (i < directionPoint.size()) {
+                    marker.setPosition(directionPoint.get(i));
+                    myMap.moveCamera(CameraUpdateFactory.newLatLng(directionPoint.get(i)));
+                }
+                i++;
+
+                if (t < 1.0) {
+                    // Post again 16ms later.
+                    handler.postDelayed(this, 2000);
+                } else {
+                    if (hideMarker) {
+                        marker.setVisible(false);
+                    } else {
+                        marker.setVisible(true);
+                    }
+                }
+            }
+        });
     }
 
     private void go() {
@@ -94,6 +149,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     class Movement implements Runnable {
         private Runnable nextRunnable;
         private LatLng place;
+
         private int length;
 
         public Movement(LatLng placeToMove) {
@@ -115,6 +171,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 movementHandler.postDelayed(nextRunnable, length);
             }
         }
+
     }
 
 }

@@ -1,5 +1,6 @@
 package com.example.mirek.googlemapssample;
 
+import android.animation.Animator;
 import android.animation.ObjectAnimator;
 import android.animation.TypeEvaluator;
 import android.animation.ValueAnimator;
@@ -71,7 +72,7 @@ public class MarkerAnimation {
 
     @TargetApi(Build.VERSION_CODES.ICE_CREAM_SANDWICH)
     static void animateMarkerToICS(final GoogleMap googleMap, Marker marker, LatLng finalPosition, final LatLngInterpolator
-            latLngInterpolator) {
+            latLngInterpolator, Animator.AnimatorListener animationListener) {
         TypeEvaluator<LatLng> typeEvaluator = new TypeEvaluator<LatLng>() {
             @Override
             public LatLng evaluate(float fraction, LatLng startValue, LatLng endValue) {
@@ -83,7 +84,10 @@ public class MarkerAnimation {
         Property<Marker, LatLng> property = Property.of(Marker.class, LatLng.class, "position");
 
         ObjectAnimator animator = ObjectAnimator.ofObject(marker, property, typeEvaluator, finalPosition);
-        animator.setDuration(3000);
+        animator.setDuration(50);
+        if (animationListener != null) {
+            animator.addListener(animationListener);
+        }
         animator.start();
     }
 }

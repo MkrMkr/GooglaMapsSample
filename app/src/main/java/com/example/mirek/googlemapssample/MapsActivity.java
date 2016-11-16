@@ -1,5 +1,6 @@
 package com.example.mirek.googlemapssample;
 
+import android.animation.Animator;
 import android.os.Bundle;
 import android.os.Handler;
 import android.support.v4.app.FragmentActivity;
@@ -8,12 +9,22 @@ import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
+import com.google.android.gms.maps.UiSettings;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.android.gms.maps.model.PolylineOptions;
 
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
+
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.util.ArrayList;
+import java.util.List;
 
 import static com.example.mirek.googlemapssample.R.id.map;
 
@@ -53,7 +64,8 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     @Override
     public void onMapReady(GoogleMap googleMap) {
         mMap = googleMap;
-
+        UiSettings uiSettings = mMap.getUiSettings();
+        uiSettings.setZoomControlsEnabled(true);
         // Add a marker in Sydney and move the camera
         LatLng sydney = new LatLng(-33.866, 151.195);
 
@@ -62,26 +74,98 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         mountainView = new LatLng(37.423, -122.091);
         places = new LatLng[]{fiji, hawaii, mountainView, hawaii, fiji, sydney};
 
-        mMap.addMarker(new MarkerOptions().position(sydney).title("Marker in Sydney"));
-        mMap.moveCamera(CameraUpdateFactory.newLatLng(sydney));
+        try {
+            final List<LatLng> routePoints = readRouteFromJsonResources();
+            LatLng firstPos = routePoints.get(0);
+            mMap.moveCamera(CameraUpdateFactory.newLatLng(firstPos));
 
-        mMap.addPolyline(new PolylineOptions().geodesic(true)
-                .add(sydney)
-                .add(fiji)
-                .add(hawaii)
-                .add(mountainView));
+            mMap.moveCamera(CameraUpdateFactory.zoomTo(15));
 
-        final Marker marker = mMap.addMarker(new MarkerOptions().
-                position(sydney).
-                title("Hello world"));
+            LatLng[] points = routePoints.toArray(new LatLng[routePoints.size()]);
 
-        new Handler().postDelayed(new Runnable() {
-            @Override
-            public void run() {
-                MarkerAnimation.animateMarkerToICS(mMap, marker, mountainView, new LatLngInterpolator.Spherical());
+            mMap.addPolyline(new PolylineOptions().geodesic(true)
+                    .add(points));
+
+            final Marker markerInFirstPosition = mMap.addMarker(new MarkerOptions().position(firstPos).title("First point position"));
+
+            new Handler().postDelayed(new Runnable() {
+                @Override
+                public void run() {
+                    MarkerToIcsAnimator markerToIcsAnimator = new MarkerToIcsAnimator(markerInFirstPosition, routePoints);
+                    markerToIcsAnimator.runAnimation();
+                }
+            }, 2000);
+        } catch (IOException e) {
+            e.printStackTrace();
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public class MarkerToIcsAnimator implements Animator.AnimatorListener {
+
+        private List<LatLng> routePoints;
+        private int lastPositionIndex = 0;
+        private Marker marker;
+
+        public MarkerToIcsAnimator(Marker movingMarker, List<LatLng> route) {
+            this.marker = movingMarker;
+            this.routePoints = route;
+        }
+
+        public void runAnimation() {
+            if (routePoints != null && routePoints.size() > 1) {
+                lastPositionIndex++;
+                MarkerAnimation.animateMarkerToICS(mMap, marker, routePoints.get(lastPositionIndex), new LatLngInterpolator
+                        .Spherical(), this);
             }
-        }, 2000);
+        }
 
+        @Override
+        public void onAnimationStart(Animator animator) {
+
+        }
+
+        @Override
+        public void onAnimationEnd(Animator animator) {
+            if (routePoints != null && routePoints.size() > 2) {
+                lastPositionIndex++;
+                if (lastPositionIndex < routePoints.size()) {
+                    MarkerAnimation.animateMarkerToICS(mMap, marker, routePoints.get(lastPositionIndex), new LatLngInterpolator
+                            .Spherical(), this);
+                }
+            }
+        }
+
+        @Override
+        public void onAnimationCancel(Animator animator) {
+        }
+
+        @Override
+        public void onAnimationRepeat(Animator animator) {
+        }
+    }
+
+    private List<LatLng> readRouteFromJsonResources() throws IOException, JSONException {
+        StringBuilder builder = new StringBuilder();
+        InputStream in = getResources().openRawResource(R.raw.route);
+        BufferedReader reader = new BufferedReader(new InputStreamReader(in));
+
+        String line;
+        while ((line = reader.readLine()) != null) {
+            builder.append(line);
+        }
+
+        JSONObject root = new JSONObject(builder.toString());
+        JSONArray routes = root.getJSONArray("steps");
+
+        List<LatLng> routePoints = new ArrayList<>();
+        for (int i = 0; i < routes.length(); i++) {
+            JSONArray locations = routes.getJSONObject(i).getJSONArray("location");
+            routePoints.add(new LatLng(locations.getDouble(1), locations.getDouble(0)));
+        }
+
+        return routePoints;
     }
 
     private void go() {

@@ -4,6 +4,7 @@ import android.animation.Animator;
 import android.os.Bundle;
 import android.os.Handler;
 import android.support.v4.app.FragmentActivity;
+import android.util.Log;
 
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
@@ -14,6 +15,7 @@ import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.android.gms.maps.model.PolylineOptions;
+import com.google.maps.android.SphericalUtil;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -107,6 +109,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         private List<LatLng> routePoints;
         private int lastPositionIndex = 0;
         private Marker marker;
+        private double speed = 1;  // m/s
 
         public MarkerToIcsAnimator(Marker movingMarker, List<LatLng> route) {
             this.marker = movingMarker;
@@ -116,7 +119,14 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         public void runAnimation() {
             if (routePoints != null && routePoints.size() > 1) {
                 lastPositionIndex++;
-                MarkerAnimation.animateMarkerToICS(mMap, marker, routePoints.get(lastPositionIndex), new LatLngInterpolator
+
+                double distance = SphericalUtil.computeDistanceBetween(routePoints.get(lastPositionIndex - 1),
+                        routePoints.get
+                                (lastPositionIndex));
+
+                double time = distance / speed;
+
+                MarkerAnimation.animateMarkerToICS(mMap, marker, routePoints.get(lastPositionIndex), time, new LatLngInterpolator
                         .Spherical(), this);
             }
         }
@@ -131,8 +141,17 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             if (routePoints != null && routePoints.size() > 2) {
                 lastPositionIndex++;
                 if (lastPositionIndex < routePoints.size()) {
-                    MarkerAnimation.animateMarkerToICS(mMap, marker, routePoints.get(lastPositionIndex), new LatLngInterpolator
-                            .Spherical(), this);
+                    double distance = SphericalUtil.computeDistanceBetween(routePoints.get(lastPositionIndex - 1),
+                            routePoints.get
+                                    (lastPositionIndex));
+
+                    double time = distance / speed;
+
+                    MarkerAnimation.animateMarkerToICS(mMap, marker, routePoints.get(lastPositionIndex), time, new
+                            LatLngInterpolator.Spherical(), this);
+
+
+                    Log.i("DISTANCE", "" + distance);
                 }
             }
         }

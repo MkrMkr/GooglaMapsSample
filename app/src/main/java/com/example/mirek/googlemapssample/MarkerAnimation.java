@@ -17,6 +17,7 @@ import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.Marker;
 
+
 /**
  * Created by Mirek on 2016-11-16.
  */
@@ -71,7 +72,7 @@ public class MarkerAnimation {
     }
 
     @TargetApi(Build.VERSION_CODES.ICE_CREAM_SANDWICH)
-    static void animateMarkerToICS(final GoogleMap googleMap, Marker marker, LatLng finalPosition, final LatLngInterpolator
+    static void animateMarkerToICS(final GoogleMap googleMap, Marker marker, LatLng finalPosition, double time, final LatLngInterpolator
             latLngInterpolator, Animator.AnimatorListener animationListener) {
         TypeEvaluator<LatLng> typeEvaluator = new TypeEvaluator<LatLng>() {
             @Override
@@ -84,7 +85,7 @@ public class MarkerAnimation {
         Property<Marker, LatLng> property = Property.of(Marker.class, LatLng.class, "position");
 
         ObjectAnimator animator = ObjectAnimator.ofObject(marker, property, typeEvaluator, finalPosition);
-        animator.setDuration(50);
+        animator.setDuration((long) time);
         if (animationListener != null) {
             animator.addListener(animationListener);
         }

@@ -9,6 +9,7 @@ import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.LatLng;
+import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.android.gms.maps.model.PolylineOptions;
 
@@ -69,7 +70,18 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 .add(fiji)
                 .add(hawaii)
                 .add(mountainView));
-        go();
+
+        final Marker marker = mMap.addMarker(new MarkerOptions().
+                position(sydney).
+                title("Hello world"));
+
+        new Handler().postDelayed(new Runnable() {
+            @Override
+            public void run() {
+                MarkerAnimation.animateMarkerToICS(mMap, marker, mountainView, new LatLngInterpolator.Spherical());
+            }
+        }, 2000);
+
     }
 
     private void go() {
